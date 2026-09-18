@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-mode="light" data-accent="warm" data-corners="soft" data-font="system">
+<html lang="en" data-mode="light" data-accent="warm" data-corners="soft" data-font="system" data-density="normal">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#c4694b">
 <title>MiroxAI — by OpenSurr</title>
 <link rel="icon" type="image/png" href="logo.png">
 <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
@@ -21,6 +22,8 @@
     </linearGradient>
   </defs>
 </svg>
+
+<div id="userBackground" aria-hidden="true"></div>
 
 <div id="loadingScreen">
   <img src="logo.png" alt="" class="load-logo">
@@ -74,8 +77,8 @@
       </div>
       <div class="topbar-actions">
         <div class="model-switcher" id="modelSwitcher">
-          <button class="model-chip active" data-model="mirox-gen1">MiroxGen1</button>
-          <button class="model-chip" data-model="mirox-ultra-v1">MiroxUltraV1</button>
+          <button class="model-chip active" data-model="mirox-gen1">Gen1</button>
+          <button class="model-chip" data-model="mirox-ultra-v1">Ultra</button>
         </div>
       </div>
     </header>
@@ -98,25 +101,32 @@
     </div>
 
     <form class="composer" id="composerForm">
-      <button type="button" class="icon-btn" id="attachBtn"><i class="ri-attachment-2"></i></button>
+      <button type="button" class="icon-btn" id="attachBtn" title="Attach"><i class="ri-attachment-2"></i></button>
       <input type="file" id="fileInput" hidden>
       <button type="button" class="icon-btn" id="micBtn" title="Voice input"><i class="ri-mic-line"></i></button>
-      <input type="text" id="messageInput" placeholder="Message MiroxAI  ·  /image  ·  /video  ·  /plans" autocomplete="off">
+      <input type="text" id="messageInput" placeholder="Message MiroxAI…" autocomplete="off" enterkeyhint="send">
       <button type="submit" class="send-btn" id="sendBtn"><i class="ri-arrow-up-line"></i></button>
     </form>
     <p class="disclaimer">MiroxAI can make mistakes. Made by the <b>OpenSurr</b> team.</p>
   </main>
 
-  <aside class="tool-rail">
+  <aside class="tool-rail" id="toolRail">
     <div class="rail-head">Tools</div>
     <div class="rail-items">
+      <button class="rail-btn" id="callModeBtn"><span class="rail-icon"><i class="ri-phone-line"></i></span><span class="rail-label">Call</span></button>
       <button class="rail-btn" id="imageModeBtn"><span class="rail-icon"><i class="ri-image-line"></i></span><span class="rail-label">Image</span></button>
       <button class="rail-btn" id="videoModeBtn"><span class="rail-icon"><i class="ri-movie-line"></i></span><span class="rail-label">Video</span></button>
+      <button class="rail-btn" id="bgModeBtn"><span class="rail-icon"><i class="ri-image-2-line"></i></span><span class="rail-label">BG</span></button>
+      <button class="rail-btn" id="extModeBtn"><span class="rail-icon"><i class="ri-puzzle-2-line"></i></span><span class="rail-label">Ext</span></button>
       <button class="rail-btn" id="plansModeBtn"><span class="rail-icon"><i class="ri-vip-crown-2-line"></i></span><span class="rail-label">Plans</span></button>
       <button class="rail-btn" id="adminRailBtn"><span class="rail-icon"><i class="ri-shield-keyhole-line"></i></span><span class="rail-label">Admin</span></button>
-      <button class="rail-btn" id="aboutBtn"><span class="rail-icon"><i class="ri-information-line"></i></span><span class="rail-label">About</span></button>
     </div>
   </aside>
+
+  <button class="rail-toggle" id="railToggleBtn" title="Toggle tools" aria-label="Toggle tools">
+    <i class="ri-arrow-right-s-line icon-collapse"></i>
+    <i class="ri-arrow-left-s-line icon-expand"></i>
+  </button>
 </div>
 
 <!-- LOGIN -->
@@ -126,7 +136,7 @@
   <p class="modal-sub">Enter a name so MiroxAI knows what to call you. Saved only on your device.</p>
   <form id="loginForm">
     <label class="field-label">Name</label>
-    <input type="text" id="loginName" placeholder="Alex" required>
+    <input type="text" id="loginName" placeholder="Alex" required autocomplete="given-name">
     <button type="submit" class="save-btn full"><i class="ri-check-line"></i> Continue</button>
   </form>
 </div></div>
@@ -140,6 +150,7 @@
     <button class="settings-tab active" data-tab="appearance">Appearance</button>
     <button class="settings-tab" data-tab="personal">Personal</button>
     <button class="settings-tab" data-tab="behavior">Behavior</button>
+    <button class="settings-tab" data-tab="voice">Voice</button>
     <button class="settings-tab" data-tab="keys">Keys</button>
     <button class="settings-tab" data-tab="admin">Admin</button>
   </div>
@@ -211,8 +222,7 @@
     <div class="settings-section">
       <h4><i class="ri-user-star-line"></i> Extra instructions</h4>
       <label class="field-label">Anything else MiroxAI should know?</label>
-      <textarea id="setPersona" class="image-prompt" rows="4" placeholder="e.g. I love space stuff. Keep answers short. Call me 'boss'."></textarea>
-      <p class="field-hint">Added to every conversation on this browser.</p>
+      <textarea id="setPersona" class="image-prompt" rows="4" placeholder="e.g. I love space stuff. Keep answers short."></textarea>
     </div>
   </div>
 
@@ -243,11 +253,29 @@
     </div>
   </div>
 
+  <!-- VOICE -->
+  <div class="settings-pane" data-pane="voice">
+    <div class="settings-section">
+      <h4><i class="ri-mic-2-line"></i> Microphone</h4>
+      <p class="field-hint" id="speechSupport">Checking…</p>
+      <button class="save-btn" id="requestMicBtn" style="margin-top:10px;"><i class="ri-mic-line"></i> Request microphone</button>
+      <p class="field-hint" id="micStatus"></p>
+    </div>
+    <div class="settings-section">
+      <h4><i class="ri-volume-up-line"></i> AI voice</h4>
+      <label class="field-label">Voice</label>
+      <select id="voiceSelect"></select>
+      <label class="field-label">Speed: <span id="voiceRateLabel">1.0×</span></label>
+      <input type="range" id="voiceRateInput" min="0.5" max="2" step="0.1" value="1">
+      <button class="save-btn" id="testVoiceBtn" style="margin-top:14px;"><i class="ri-play-line"></i> Test voice</button>
+    </div>
+  </div>
+
   <!-- KEYS -->
   <div class="settings-pane" data-pane="keys">
     <div class="settings-section">
       <h4><i class="ri-key-2-line"></i> Your personal API keys</h4>
-      <p class="field-hint" style="margin-bottom:14px;">Optional. If provided, these are used before the shared browser defaults. Leave blank to use MiroxAI's built-in free tier.</p>
+      <p class="field-hint" style="margin-bottom:14px;">Optional. Leave blank to use MiroxAI's built-in free tier.</p>
 
       <label class="field-label">Pollinations API key</label>
       <input type="password" id="keyPollinations" placeholder="pk_...">
@@ -255,7 +283,7 @@
 
       <label class="field-label" style="margin-top:16px;">Hugging Face token</label>
       <input type="password" id="keyHuggingface" placeholder="hf_...">
-      <p class="field-hint">Used as a fallback provider. Get one at huggingface.co/settings/tokens</p>
+      <p class="field-hint">Fallback provider. Get one at huggingface.co/settings/tokens</p>
 
       <label class="field-label" style="margin-top:16px;">AIRoute API key</label>
       <input type="password" id="keyAirouteToken" placeholder="air_rt_...">
@@ -272,7 +300,7 @@
     <div class="settings-section" id="adminLockedSection">
       <h4><i class="ri-lock-line"></i> Admin unlock</h4>
       <p class="field-hint" style="margin-bottom:10px;">Enter the admin password to access the admin section.</p>
-      <input type="password" id="adminPasswordInput" placeholder="••••">
+      <input type="password" id="adminPasswordInput" placeholder="••••" inputmode="numeric">
       <button class="save-btn full" id="adminUnlockBtn"><i class="ri-lock-unlock-line"></i> Unlock</button>
       <p class="field-hint" id="adminUnlockStatus"></p>
     </div>
@@ -280,8 +308,7 @@
     <div id="adminUnlockedSection" style="display:none;">
       <div class="settings-section">
         <h4><i class="ri-shield-keyhole-line"></i> Admin API keys</h4>
-        <p class="field-hint" style="margin-bottom:14px;">These override the user keys for everyone on this browser.</p>
-
+        <p class="field-hint" style="margin-bottom:14px;">These override user keys for everyone on this browser.</p>
         <label class="field-label">Pollinations API key</label>
         <input type="password" id="adminKeyPollinations" placeholder="pk_...">
         <label class="field-label" style="margin-top:16px;">Hugging Face token</label>
@@ -290,14 +317,12 @@
         <input type="password" id="adminKeyAirouteToken" placeholder="air_rt_...">
         <label class="field-label">AIRoute base URL</label>
         <input type="text" id="adminKeyAirouteBase" placeholder="https://route-ai-playground.lovable.app">
-
         <button class="save-btn full" id="saveAdminKeysBtn"><i class="ri-save-line"></i> Save admin keys</button>
         <p class="field-hint" id="adminKeysSaveStatus"></p>
       </div>
 
       <div class="settings-section">
         <h4><i class="ri-megaphone-line"></i> Broadcast message</h4>
-        <label class="field-label">Message shown to all users on this browser</label>
         <input type="text" id="adminBroadcast" placeholder="Welcome to MiroxAI!">
         <div class="option-row" id="broadcastTypeOptions" style="margin-top:10px;">
           <button class="option-btn active" data-btype="info">Info</button>
@@ -307,17 +332,6 @@
         </div>
         <button class="save-btn full" id="saveBroadcastBtn"><i class="ri-send-plane-fill"></i> Publish</button>
         <p class="field-hint" id="broadcastStatus"></p>
-      </div>
-
-      <div class="settings-section">
-        <h4><i class="ri-tools-line"></i> Maintenance mode</h4>
-        <label class="toggle-row"><span>Show maintenance banner</span>
-          <input type="checkbox" id="adminMaintenance">
-          <span class="toggle-switch"></span>
-        </label>
-        <label class="field-label">Maintenance message</label>
-        <input type="text" id="adminMaintenanceMsg" placeholder="MiroxAI is under maintenance.">
-        <button class="save-btn full" id="saveMaintenanceBtn"><i class="ri-save-line"></i> Save</button>
       </div>
 
       <div class="settings-section">
@@ -397,6 +411,67 @@
   </div>
 </div></div>
 
+<!-- BACKGROUND -->
+<div class="modal-overlay" id="backgroundModal"><div class="modal wide">
+  <button class="modal-close" data-close="backgroundModal"><i class="ri-close-line"></i></button>
+  <div class="modal-brand"><img src="logo.png" alt=""><h2>Background</h2></div>
+  <p class="modal-sub">Personal to this browser only. Images are auto-compressed for iOS Safari.</p>
+  <div class="ext-upload-zone" id="bgUploadZone">
+    <i class="ri-upload-cloud-2-line"></i>
+    <span>Click or drag an image here (PNG / JPG / WEBP)</span>
+    <input type="file" id="bgFileInput" accept="image/*" hidden>
+  </div>
+  <p class="field-hint">Auto-resized and compressed to fit iOS Safari storage limits.</p>
+  <label class="field-label">Or paste a URL</label>
+  <div class="row"><input type="text" id="bgUrlInput" placeholder="https://..."><button class="save-btn" id="bgUrlApplyBtn" style="margin-top:0;">Apply</button></div>
+  <label class="field-label">Dim: <span id="bgDimLabel">45%</span></label>
+  <input type="range" id="bgDimInput" min="0" max="90" step="5" value="45">
+  <label class="field-label">Blur: <span id="bgBlurLabel">0px</span></label>
+  <input type="range" id="bgBlurInput" min="0" max="20" step="1" value="0">
+  <label class="field-label">Fit</label>
+  <div class="option-row" id="bgFitOptions">
+    <button class="option-btn active" data-fit="cover">Cover</button>
+    <button class="option-btn" data-fit="contain">Contain</button>
+    <button class="option-btn" data-fit="repeat">Repeat</button>
+  </div>
+  <div class="row" style="margin-top:20px;">
+    <button class="save-btn" id="bgSaveBtn"><i class="ri-save-line"></i> Save</button>
+    <button class="save-btn outline" id="bgRemoveBtn"><i class="ri-delete-bin-line"></i> Remove</button>
+  </div>
+  <p class="field-hint" id="bgStatus"></p>
+</div></div>
+
+<!-- EXTENSIONS -->
+<div class="modal-overlay" id="extensionsModal"><div class="modal wide">
+  <button class="modal-close" data-close="extensionsModal"><i class="ri-close-line"></i></button>
+  <div class="modal-brand"><img src="logo.png" alt=""><h2>Extensions</h2></div>
+  <p class="modal-sub">Custom CSS for your browser. Doesn't affect other users.</p>
+  <div class="ext-section">
+    <p class="field-label">Quick start</p>
+    <div class="ext-preset-row">
+      <button class="ext-preset" data-preset="font"><i class="ri-font-size"></i> Custom font</button>
+      <button class="ext-preset" data-preset="rounded"><i class="ri-checkbox-blank-circle-line"></i> Rounded</button>
+      <button class="ext-preset" data-preset="compact"><i class="ri-layout-row-line"></i> Compact</button>
+      <button class="ext-preset" data-preset="accent"><i class="ri-palette-line"></i> Accent</button>
+    </div>
+  </div>
+  <div class="ext-section">
+    <label class="field-label">Name</label>
+    <input type="text" id="extNameInput" placeholder="My extension">
+    <label class="field-label">CSS</label>
+    <textarea id="extCssInput" class="ext-css-input" rows="8" placeholder=".bubble { font-size: 14px; }"></textarea>
+    <div class="ext-editor-actions">
+      <button class="save-btn" id="extSaveBtn"><i class="ri-save-line"></i> Save</button>
+      <button class="save-btn outline" id="extClearBtn"><i class="ri-eraser-line"></i> Clear</button>
+    </div>
+    <p class="field-hint" id="extStatus"></p>
+  </div>
+  <div class="ext-section">
+    <p class="field-label">Your extensions</p>
+    <ul class="ext-list" id="extList"></ul>
+  </div>
+</div></div>
+
 <!-- PLANS -->
 <div class="modal-overlay" id="plansModal"><div class="modal wide">
   <button class="modal-close" data-close="plansModal"><i class="ri-close-line"></i></button>
@@ -452,7 +527,7 @@
 <!-- ADMIN PANEL -->
 <div class="modal-overlay" id="adminPanelModal"><div class="modal wide">
   <button class="modal-close" data-close="adminPanelModal"><i class="ri-close-line"></i></button>
-  <div class="modal-brand"><img src="logo.png" alt=""><h2><i class="ri-shield-keyhole-line"></i> Admin · Verification panel</h2></div>
+  <div class="modal-brand"><img src="logo.png" alt=""><h2><i class="ri-shield-keyhole-line"></i> Admin · Verification</h2></div>
   <p class="modal-sub">Review pending payment screenshots. Approve to activate the plan, or reject with a note.</p>
   <div class="admin-stats" id="adminStats"></div>
   <div class="admin-filters">
@@ -477,11 +552,30 @@
   </div>
 </div></div>
 
+<!-- CALL OVERLAY -->
+<div class="call-overlay" id="callOverlay">
+  <div class="call-status" id="callStatus">Connecting…</div>
+  <div class="call-orb-wrap">
+    <div class="call-orb-ring"></div>
+    <div class="call-orb-ring delay"></div>
+    <img src="logo.png" alt="" class="call-orb" id="callOrb">
+  </div>
+  <p class="call-transcript" id="callTranscript"></p>
+  <form class="call-text-fallback" id="callTextForm" style="display:none;">
+    <input type="text" id="callTextInput" placeholder="Type your message" autocomplete="off">
+    <button type="submit"><i class="ri-send-plane-fill"></i></button>
+  </form>
+  <div class="call-controls">
+    <button class="call-btn" id="callMuteBtn" title="Mute"><i class="ri-mic-line"></i></button>
+    <button class="call-btn end" id="callEndBtn" title="End call"><i class="ri-phone-line"></i></button>
+  </div>
+</div>
+
 <!-- BROADCAST BANNER -->
 <div id="broadcastBanner" class="broadcast-banner" style="display:none;">
   <i class="ri-megaphone-line"></i>
   <span id="broadcastText"></span>
-  <button id="broadcastClose"><i class="ri-close-line"></i></button>
+  <button id="broadcastClose" aria-label="Dismiss"><i class="ri-close-line"></i></button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
