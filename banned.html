@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Access Restricted — MiroxAI</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0e;--panel:#15151d;--border:#26262f;--text:#f4f4f8;--muted:#a0a0ab;--accent:#c4694b;--danger:#dc2626;--r:14px;--font:'Inter',-apple-system,sans-serif;--mono:'JetBrains Mono',monospace}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden;display:flex;align-items:center;justify-content:center;padding:20px}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% 30%, rgba(220,38,38,.15), transparent 60%);z-index:0;pointer-events:none}
+.ban-card{position:relative;z-index:1;background:var(--panel);border:1px solid var(--border);border-radius:22px;padding:40px 32px;max-width:460px;width:100%;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.ban-logo{width:72px;height:72px;border-radius:20px;margin-bottom:20px;filter:invert(1) brightness(1.15);animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.ban-icon{width:64px;height:64px;border-radius:50%;background:rgba(220,38,38,.15);border:2px solid rgba(220,38,38,.4);color:var(--danger);font-size:28px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 14px rgba(220,38,38,0)}}
+h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.sub{color:var(--muted);font-size:14.5px;line-height:1.6;margin-bottom:24px}
+.reason-box{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.3);border-left:3px solid var(--danger);border-radius:10px;padding:14px 16px;text-align:left;margin-bottom:20px}
+.reason-box .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:800;margin-bottom:4px}
+.reason-box .val{font-size:14px;font-weight:600;color:var(--text);word-break:break-word}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.meta div{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:left}
+.meta .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:800}
+.meta .v{font-family:var(--mono);font-size:12.5px;font-weight:700;margin-top:2px;word-break:break-all}
+.check-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#a8503a);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.check-btn:disabled{opacity:.6;cursor:not-allowed}
+.status{font-size:12.5px;color:var(--muted);margin-top:12px;min-height:18px}
+.status.ok{color:#22c55e;font-weight:700}
+.help{color:var(--muted);font-size:12.5px;margin-top:20px;line-height:1.6}
+.help a{color:var(--accent);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="ban-card">
+  <img src="logo.png" alt="MiroxAI" class="ban-logo">
+  <div class="ban-icon"><i class="ri-forbid-2-line"></i></div>
+  <h1>Access Restricted</h1>
+  <p class="sub">Your access to MiroxAI has been suspended by an administrator.</p>
+
+  <div class="reason-box">
+    <div class="lbl">Reason</div>
+    <div class="val" id="reason">No reason provided</div>
+  </div>
+
+  <div class="meta">
+    <div><div class="k">User</div><div class="v" id="metaUser">—</div></div>
+    <div><div class="k">Banned at</div><div class="v" id="metaWhen">—</div></div>
+  </div>
+
+  <button class="check-btn" id="checkBtn"><i class="ri-refresh-line"></i> Check ban status</button>
+  <p class="status" id="status">Auto-checking every 5 seconds…</p>
+  <p class="help">If you believe this is a mistake, contact the admin at <a href="#">support</a>.</p>
+</div>
+
+<script>
+const FIREBASE_URL = "https://miroxlink-default-rtdb.firebaseio.com";
+const fdb = {
+  url(p = "") { return FIREBASE_URL.replace(/\/$/, "") + "/" + p.replace(/^\//, "") + ".json"; },
+  async get(p) {
+    try {
+      const r = await fetch(this.url(p), { cache: "no-store" });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  }
+};
+
+const userName = localStorage.getItem("mx_user") ? (JSON.parse(localStorage.getItem("mx_user"))?.name || "Guest") : "Guest";
+document.getElementById("metaUser").textContent = userName;
+
+async function checkBan() {
+  if (!userName || userName === "Guest") {
+    document.getElementById("status").textContent = "Please sign in to check your ban status.";
+    return;
+  }
+  const ban = await fdb.get(`bans/${encodeURIComponent(userName)}`);
+  if (ban && ban.reason) {
+    document.getElementById("reason").textContent = ban.reason;
+    document.getElementById("metaWhen").textContent = ban.ts ? new Date(ban.ts).toLocaleString() : "—";
+    document.getElementById("status").textContent = "Still banned. Checking again in 5s…";
+    document.getElementById("status").className = "status";
+  } else {
+    document.getElementById("status").textContent = "✅ You have been unbanned! Reloading…";
+    document.getElementById("status").className = "status ok";
+    localStorage.setItem("mx_was_banned", "0");
+    setTimeout(() => location.href = "/", 1500);
+  }
+}
+
+document.getElementById("checkBtn").addEventListener("click", checkBan);
+
+checkBan();
+setInterval(checkBan, 5000);
+</script>
+
+</body>
+</html>

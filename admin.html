@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MiroxAI Admin Console</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fbfbfd;--bg-soft:#f6f6f9;--panel:#fff;--panel-2:#f4f4f8;
+  --border:#e8e8ee;--text:#0b0b0e;--muted:#6b6b78;--faint:#9a9aa6;
+  --accent:#c4694b;--accent-hover:#a8503a;--accent-soft:rgba(196,105,75,.10);
+  --accent-ring:rgba(196,105,75,.28);--accent-glow:rgba(196,105,75,.30);
+  --r:10px;--r-lg:14px;--r-xl:20px;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --sh:0 12px 32px rgba(15,15,35,.10);
+}
+:root[data-mode="dark"]{
+  --bg:#0a0a0e;--bg-soft:#0f0f15;--panel:#15151d;--panel-2:#1b1b24;
+  --border:#23232e;--text:#f2f2f7;--muted:#a0a0ab;--faint:#6a6a76;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:15px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:transparent}
+img[src*="logo"]{transition:filter .25s ease}
+:root[data-mode="dark"] img[src*="logo"]{filter:invert(1) brightness(1.15)}
+:root[data-mode="light"] img[src*="logo"]{filter:none}
+
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100;padding:20px}
+.login-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-xl);padding:32px;width:100%;max-width:400px;box-shadow:var(--sh);text-align:center}
+.login-card .logo{width:52px;height:52px;border-radius:14px;margin-bottom:14px}
+.login-card h1{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+.login-card p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.login-card input{width:100%;padding:14px;text-align:center;font-size:22px;font-family:var(--mono);letter-spacing:.3em;background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--r);outline:none;margin-bottom:12px}
+.login-card input:focus{border-color:var(--accent-ring);box-shadow:0 0 0 4px var(--accent-soft)}
+.login-card button{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#fff;border-radius:var(--r);font-size:13.5px;font-weight:800}
+.login-err{color:#dc2626;font-size:12.5px;margin-top:10px;min-height:18px}
+
+#app{display:none}
+#app.on{display:block}
+.header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.header .logo{width:32px;height:32px;border-radius:9px}
+.header h1{font-size:16px;font-weight:800;letter-spacing:-.02em;margin-right:auto}
+.header .pill{font-size:11px;font-weight:800;padding:5px 10px;border-radius:20px;background:var(--panel-2);color:var(--muted);text-transform:uppercase;letter-spacing:.4px;text-decoration:none}
+.header .pill.on{background:rgba(22,163,74,.15);color:#16a34a}
+.header .pill.off{background:rgba(220,38,38,.15);color:#dc2626}
+.header button{padding:8px 14px;border-radius:var(--r);font-size:12.5px;font-weight:700;border:1px solid var(--border);background:var(--panel)}
+.header button.danger{background:#dc2626;color:#fff;border-color:#dc2626}
+.wrap{padding:24px;max-width:1500px;margin:0 auto}
+
+.tabs-nav{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--border);padding:0 24px;background:var(--bg)}
+.tabs-nav::-webkit-scrollbar{display:none}
+.tab-btn{padding:14px 18px;font-size:13.5px;font-weight:700;color:var(--muted);border-bottom:2.5px solid transparent;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn i{font-size:16px}
+.pane{display:none}
+.pane.active{display:block}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),#8b5cf6)}
+.stat .l{font-size:10.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+.stat .v{font-size:26px;font-family:var(--mono);font-weight:800;margin-top:4px}
+.stat.warn::before{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.stat.ok::before{background:linear-gradient(90deg,#16a34a,#22c55e)}
+.stat.bad::before{background:linear-gradient(90deg,#dc2626,#ef4444)}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:18px}
+.card h2{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 i{color:var(--accent);font-size:16px}
+
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.row input[type="text"],.row select{flex:1;min-width:200px;padding:10px 13px;background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--r);font-size:13.5px;outline:none}
+.row input:focus{border-color:var(--accent-ring);box-shadow:0 0 0 3px var(--accent-soft)}
+.btn{padding:10px 16px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#fff;border-radius:var(--r);font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.btn.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border)}
+.btn.danger{background:#dc2626}
+.btn.ok{background:#16a34a}
+.btn.sm{padding:6px 11px;font-size:12px;border-radius:8px}
+
+.list{display:flex;flex-direction:column;gap:10px;max-height:70vh;overflow-y:auto}
+.item{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;display:flex;gap:14px;align-items:flex-start}
+.item .thumb{width:100px;height:100px;border-radius:10px;object-fit:cover;border:1px solid var(--border);background:var(--panel);flex-shrink:0;cursor:zoom-in}
+.item .meta{flex:1;min-width:0;font-size:13px;line-height:1.6}
+.item .meta h3{font-size:13.5px;font-weight:800;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.item .meta p{color:var(--muted);word-break:break-word;margin-bottom:2px}
+.item .meta b{color:var(--text)}
+.item .meta code{font-family:var(--mono);font-size:11.5px;background:var(--bg);padding:2px 6px;border-radius:4px}
+.badge{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+.badge.pending{background:rgba(217,119,6,.15);color:#d97706}
+.badge.approved{background:rgba(22,163,74,.15);color:#16a34a}
+.badge.rejected{background:rgba(220,38,38,.15);color:#dc2626}
+.badge.banned{background:rgba(220,38,38,.15);color:#dc2626}
+.badge.online{background:rgba(22,163,74,.15);color:#16a34a}
+.item .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+
+.log-item{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;font-size:12.5px}
+.log-item .head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.log-item .head .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.log-item .body{white-space:pre-wrap;word-break:break-word;line-height:1.55}
+.log-item .role{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.log-item.user{border-left:3px solid #2563eb}
+.log-item.ai{border-left:3px solid #16a34a}
+
+.empty{padding:36px;text-align:center;color:var(--muted);font-size:13px;font-style:italic;background:var(--panel-2);border:1px dashed var(--border);border-radius:var(--r-lg)}
+
+.ai-monitor{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+@media (max-width:900px){.ai-monitor{grid-template-columns:1fr}}
+.ai-chat{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);display:flex;flex-direction:column;height:600px}
+.ai-chat .messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.ai-chat .m{max-width:85%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.55;word-break:break-word}
+.ai-chat .m.user{background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.ai-chat .m.ai{background:var(--panel-2);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+.ai-chat .m .meta{font-size:10px;opacity:.7;margin-top:4px;font-weight:600}
+.ai-chat form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.ai-chat input{flex:1;padding:11px 13px;background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--r);outline:none;font-size:13.5px}
+.ai-chat input:focus{border-color:var(--accent-ring);box-shadow:0 0 0 3px var(--accent-soft)}
+.ai-chat button{padding:11px 18px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#fff;border-radius:var(--r);font-weight:700;font-size:13px}
+.quick-cmds{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px}
+.quick-cmds h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:800;margin-bottom:10px}
+.quick-cmd{display:block;width:100%;text-align:left;padding:9px 12px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.quick-cmd:hover{border-color:var(--accent-ring);color:var(--accent)}
+.quick-cmd code{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+
+.toast{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:340px}
+.toast .t{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r);padding:12px 16px;font-size:13px;box-shadow:var(--sh)}
+.toast .t.ok{border-left-color:#16a34a}
+.toast .t.err{border-left-color:#dc2626}
+
+@media (max-width:720px){
+  .wrap{padding:16px}
+  .header{padding:12px 16px}
+  .tabs-nav{padding:0 16px}
+  .tab-btn{padding:12px 14px;font-size:12.5px}
+  .item{flex-direction:column}
+  .item .thumb{width:100%;height:auto;max-height:280px}
+  .grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <img class="logo" src="logo.png" alt="">
+    <h1>MiroxAI Admin</h1>
+    <p>Enter the admin password to open the console.</p>
+    <input type="password" id="pw" maxlength="4" inputmode="numeric" placeholder="••••" autofocus>
+    <button id="loginBtn">Unlock</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="header">
+    <img class="logo" src="logo.png" alt="">
+    <h1>MiroxAI Admin Console</h1>
+    <span class="pill" id="fbPill">checking…</span>
+    <a href="/" class="pill" style="text-decoration:none">← App</a>
+    <button id="themeBtn"><i class="ri-moon-line"></i></button>
+    <button class="danger" id="logoutBtn"><i class="ri-logout-box-line"></i> Lock</button>
+  </header>
+
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="overview"><i class="ri-dashboard-line"></i> Overview</button>
+    <button class="tab-btn" data-tab="orders"><i class="ri-shopping-bag-3-line"></i> Orders <span class="badge pending" id="ordersBadge" style="display:none;margin-left:4px">0</span></button>
+    <button class="tab-btn" data-tab="chatlogs"><i class="ri-chat-3-line"></i> Chat logs</button>
+    <button class="tab-btn" data-tab="users"><i class="ri-group-line"></i> User logs</button>
+    <button class="tab-btn" data-tab="imagelogs"><i class="ri-image-line"></i> Image logs</button>
+    <button class="tab-btn" data-tab="bans"><i class="ri-forbid-2-line"></i> Bans</button>
+    <button class="tab-btn" data-tab="aimonitor"><i class="ri-robot-line"></i> AI Monitor</button>
+    <button class="tab-btn" data-tab="aitasks"><i class="ri-magic-line"></i> AI Tasks</button>
+  </nav>
+
+  <div class="wrap">
+
+    <!-- OVERVIEW -->
+    <div class="pane active" data-pane="overview">
+      <div class="grid" id="statsGrid"></div>
+      <div class="card">
+        <h2><i class="ri-pulse-line"></i> Live activity</h2>
+        <div class="list" id="liveActivity"></div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="pane" data-pane="orders">
+      <div class="card">
+        <h2><i class="ri-shopping-bag-3-line"></i> Payment orders</h2>
+        <div class="row">
+          <input type="text" id="orderFilter" placeholder="Filter by user…">
+          <button class="btn ghost" id="refreshOrders"><i class="ri-refresh-line"></i> Refresh</button>
+        </div>
+        <div class="list" id="ordersList"></div>
+      </div>
+    </div>
+
+    <!-- CHAT LOGS -->
+    <div class="pane" data-pane="chatlogs">
+      <div class="card">
+        <h2><i class="ri-chat-3-line"></i> Chat logs</h2>
+        <div class="row">
+          <input type="text" id="chatFilter" placeholder="Filter by user or message…">
+          <button class="btn ghost" id="refreshChatLogs"><i class="ri-refresh-line"></i> Refresh</button>
+          <button class="btn danger" id="clearChatLogs"><i class="ri-delete-bin-line"></i> Clear</button>
+        </div>
+        <div class="list" id="chatLogsList"></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="pane" data-pane="users">
+      <div class="card">
+        <h2><i class="ri-group-line"></i> User logs</h2>
+        <div class="row">
+          <input type="text" id="userFilter" placeholder="Filter by name…">
+          <button class="btn ghost" id="refreshUsers"><i class="ri-refresh-line"></i> Refresh</button>
+        </div>
+        <div class="list" id="usersList"></div>
+      </div>
+    </div>
+
+    <!-- IMAGE LOGS -->
+    <div class="pane" data-pane="imagelogs">
+      <div class="card">
+        <h2><i class="ri-image-line"></i> Image generation logs</h2>
+        <div class="row">
+          <input type="text" id="imgFilter" placeholder="Filter by user or prompt…">
+          <button class="btn ghost" id="refreshImgLogs"><i class="ri-refresh-line"></i> Refresh</button>
+          <button class="btn danger" id="clearImgLogs"><i class="ri-delete-bin-line"></i> Clear</button>
+        </div>
+        <div class="list" id="imgLogsList"></div>
+      </div>
+    </div>
+
+    <!-- BANS -->
+    <div class="pane" data-pane="bans">
+      <div class="card">
+        <h2><i class="ri-forbid-2-line"></i> Ban management</h2>
+        <div class="row">
+          <input type="text" id="banName" placeholder="User name to ban…">
+          <input type="text" id="banReason" placeholder="Reason (optional)">
+          <button class="btn danger" id="banBtn"><i class="ri-forbid-2-line"></i> Ban user</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">When you ban a user, their open tabs will force-reload to the ban page. When you unban, they get an "unbanned" alert and reload back into the app.</p>
+        <div class="list" id="bansList"></div>
+      </div>
+    </div>
+
+    <!-- AI MONITOR -->
+    <div class="pane" data-pane="aimonitor">
+      <div class="card">
+        <h2><i class="ri-robot-line"></i> AI Monitor — Live feed</h2>
+        <div class="grid" id="monitorStats"></div>
+        <div class="ai-monitor">
+          <div class="list" id="monitorFeed"></div>
+          <div class="card">
+            <h2><i class="ri-sparkling-line"></i> AI Summary</h2>
+            <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">Ask AI to summarize recent activity.</p>
+            <button class="btn" id="askAiSummary"><i class="ri-magic-line"></i> Generate summary</button>
+            <div id="aiSummaryOut" style="margin-top:14px;font-size:13px;line-height:1.6;color:var(--text)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI TASKS -->
+    <div class="pane" data-pane="aitasks">
+      <div class="card">
+        <h2><i class="ri-magic-line"></i> AI Tasks</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Tell the admin AI what to do. It can ban/unban users, broadcast messages, clear logs, and show stats.</p>
+        <div class="ai-monitor">
+          <div class="ai-chat">
+            <div class="messages" id="taskMessages">
+              <div class="m ai">Hi! I'm your admin AI. Try commands like:<br>
+                • <code>ban Alex</code><br>
+                • <code>unban Alex</code><br>
+                • <code>broadcast Welcome!</code><br>
+                • <code>stats</code><br>
+                • <code>who is online</code>
+                <div class="meta">Admin AI</div>
+              </div>
+            </div>
+            <form id="taskForm">
+              <input type="text" id="taskInput" placeholder="Type a command or question…" autocomplete="off">
+              <button type="submit"><i class="ri-send-plane-fill"></i></button>
+            </form>
+          </div>
+          <div class="quick-cmds">
+            <h3>Quick commands</h3>
+            <button class="quick-cmd" data-cmd="stats"><code>stats</code> — show totals</button>
+            <button class="quick-cmd" data-cmd="who is online"><code>who is online</code></button>
+            <button class="quick-cmd" data-cmd="pending orders"><code>pending orders</code></button>
+            <button class="quick-cmd" data-cmd="recent bans"><code>recent bans</code></button>
+            <button class="quick-cmd" data-cmd="clear chat logs"><code>clear chat logs</code></button>
+            <button class="quick-cmd" data-cmd="clear image logs"><code>clear image logs</code></button>
+            <button class="quick-cmd" data-cmd="summary of today"><code>summary of today</code></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toasts"></div>
+
+<script>
+/* ============================================================
+   MiroxAI Admin Console
+   ============================================================ */
+const FIREBASE_URL = "https://miroxlink-default-rtdb.firebaseio.com";
+const ADMIN_PASSWORD = "2010";
+const REFRESH_MS = 5000;
+const SPOOF_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+    <rect width="200" height="200" fill="#f0f0f5"/>
+    <circle cx="100" cy="85" r="26" fill="none" stroke="#c0c0cc" stroke-width="2"/>
+    <path d="M70 75 L130 75" stroke="#c0c0cc" stroke-width="2"/>
+    <text x="100" y="150" text-anchor="middle" fill="#8888a0" font-family="sans-serif" font-size="12">no image</text>
+  </svg>`);
+
+const fdb = {
+  url(p = "") { return FIREBASE_URL.replace(/\/$/, "") + "/" + p.replace(/^\//, "") + ".json"; },
+  async get(p) { try { const r = await fetch(this.url(p), { cache:"no-store" }); if (!r.ok) return null; return await r.json(); } catch { return null; } },
+  async put(p, d) { try { const r = await fetch(this.url(p), { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(d) }); return r.ok ? await r.json() : { __error:`${r.status}` }; } catch (e) { return { __error:String(e.message||e) }; } },
+  async patch(p, d) { try { const r = await fetch(this.url(p), { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(d) }); return r.ok ? await r.json() : { __error:`${r.status}` }; } catch (e) { return { __error:String(e.message||e) }; } },
+  async del(p) { try { await fetch(this.url(p), { method:"DELETE" }); } catch {} }
+};
+
+// Theme
+const savedTheme = localStorage.getItem("mx_admin_mode") || "light";
+document.documentElement.setAttribute("data-mode", savedTheme);
+const themeBtn = document.getElementById("themeBtn");
+themeBtn.innerHTML = savedTheme === "dark" ? '<i class="ri-sun-line"></i>' : '<i class="ri-moon-line"></i>';
+themeBtn.addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-mode") === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-mode", next);
+  localStorage.setItem("mx_admin_mode", next);
+  themeBtn.innerHTML = next === "dark" ? '<i class="ri-sun-line"></i>' : '<i class="ri-moon-line"></i>';
+});
+
+function toast(msg, kind) {
+  const c = document.getElementById("toasts");
+  const el = document.createElement("div");
+  el.className = "t " + (kind || "");
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+function esc(s) { const d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; }
+function fmtDate(ts) { return new Date(ts || 0).toLocaleString(); }
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - (ts || 0)) / 1000);
+  if (s < 60) return s + "s ago";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
+}
+
+// Login gate
+const loginEl = document.getElementById("login"), appEl = document.getElementById("app");
+function unlock() {
+  loginEl.style.display = "none";
+  appEl.classList.add("on");
+  sessionStorage.setItem("mx_admin_session", "1");
+  start();
+}
+document.getElementById("loginBtn").addEventListener("click", () => {
+  const v = document.getElementById("pw").value.trim();
+  const err = document.getElementById("loginErr");
+  if (v !== ADMIN_PASSWORD) { err.textContent = "Wrong password."; return; }
+  err.textContent = "";
+  unlock();
+});
+document.getElementById("pw").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("loginBtn").click(); });
+document.getElementById("logoutBtn").addEventListener("click", () => { sessionStorage.removeItem("mx_admin_session"); location.reload(); });
+if (sessionStorage.getItem("mx_admin_session") === "1") unlock();
+
+// Tabs
+document.querySelectorAll(".tab-btn").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab-btn").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("active", p.dataset.pane === t.dataset.tab));
+  refreshCurrentTab();
+}));
+let currentTab = "overview";
+function refreshCurrentTab() {
+  const active = document.querySelector(".tab-btn.active");
+  if (active) currentTab = active.dataset.tab;
+  if (currentTab === "orders") loadOrders();
+  else if (currentTab === "chatlogs") loadChatLogs();
+  else if (currentTab === "users") loadUsers();
+  else if (currentTab === "imagelogs") loadImgLogs();
+  else if (currentTab === "bans") loadBans();
+  else if (currentTab === "aimonitor") loadMonitor();
+  else if (currentTab === "overview") loadOverview();
+}
+
+// ============ OVERVIEW ============
+async function loadOverview() {
+  const [orders, users, bans, chats, imgs] = await Promise.all([
+    fdb.get("orders"), fdb.get("users"), fdb.get("bans"),
+    fdb.get("chatlogs"), fdb.get("imagelogs"),
+  ]);
+  const orderList = orders ? Object.values(orders) : [];
+  const userList = users ? Object.values(users) : [];
+  const banList = bans ? Object.values(bans) : [];
+  const chatList = chats ? Object.values(chats) : [];
+  const imgList = imgs ? Object.values(imgs) : [];
+  const now = Date.now();
+  const online = userList.filter(u => now - (u.lastSeen || 0) < 60000).length;
+  const pendingOrders = orderList.filter(o => o.status === "pending").length;
+
+  document.getElementById("statsGrid").innerHTML = `
+    <div class="stat"><div class="l">Users</div><div class="v">${userList.length}</div></div>
+    <div class="stat ok"><div class="l">Online</div><div class="v">${online}</div></div>
+    <div class="stat warn"><div class="l">Pending orders</div><div class="v">${pendingOrders}</div></div>
+    <div class="stat bad"><div class="l">Banned</div><div class="v">${banList.length}</div></div>
+    <div class="stat"><div class="l">Chat messages</div><div class="v">${chatList.length}</div></div>
+    <div class="stat"><div class="l">Images</div><div class="v">${imgList.length}</div></div>
+  `;
+
+  const badge = document.getElementById("ordersBadge");
+  if (pendingOrders > 0) { badge.style.display = "inline-block"; badge.textContent = pendingOrders; }
+  else badge.style.display = "none";
+
+  // Live feed: last 20 events merged
+  const events = [];
+  orderList.forEach(o => events.push({ ts: o.submittedAt, type:"order", text:`🛒 ${o.user} bought ${o.planLabel}`, color:"#d97706" }));
+  chatList.forEach(c => events.push({ ts: c.ts, type:"chat", text:`💬 ${c.user}: ${(c.userMsg||"").slice(0,60)}`, color:"#2563eb" }));
+  imgList.forEach(i => events.push({ ts: i.ts, type:"img", text:`🖼️ ${i.user}: ${(i.prompt||"").slice(0,60)}`, color:"#16a34a" }));
+  banList.forEach(b => events.push({ ts: b.ts, type:"ban", text:`🚫 ${b.name} banned: ${b.reason}`, color:"#dc2626" }));
+  events.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+  const feed = document.getElementById("liveActivity");
+  feed.innerHTML = events.slice(0, 30).map(e => `
+    <div class="log-item" style="border-left:3px solid ${e.color}">
+      <div class="head"><span class="t">${fmtDate(e.ts)}</span><span class="t">${timeAgo(e.ts)}</span></div>
+      <div class="body">${esc(e.text)}</div>
+    </div>`).join("") || `<div class="empty">No activity yet.</div>`;
+}
+
+// ============ ORDERS ============
+let ordersCache = [];
+async function loadOrders() {
+  const remote = await fdb.get("orders");
+  ordersCache = remote ? Object.entries(remote).map(([id, o]) => ({ id, ...o })) : [];
+  renderOrders();
+}
+function renderOrders() {
+  const q = (document.getElementById("orderFilter").value || "").toLowerCase();
+  const list = q ? ordersCache.filter(o => (o.user || "").toLowerCase().includes(q)) : ordersCache;
+  list.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+  const el = document.getElementById("ordersList");
+  if (!list.length) { el.innerHTML = `<div class="empty">No orders.</div>`; return; }
+  el.innerHTML = list.map(o => `
+    <div class="item">
+      <img class="thumb" src="${o.proof || SPOOF_IMG}" onerror="this.src='${SPOOF_IMG}'" data-zoom="${o.id}" alt="">
+      <div class="meta">
+        <h3>${esc(o.planLabel)} · R$ ${o.price} <span class="badge ${o.status}">${o.status}</span></h3>
+        <p>User: <b>${esc(o.user)}</b></p>
+        <p>Submitted: ${fmtDate(o.submittedAt)}</p>
+        ${o.adminNote ? `<p>Note: <b>${esc(o.adminNote)}</b></p>` : ""}
+        <div class="actions">
+          ${o.status !== "approved" ? `<button class="btn ok sm" data-approve="${o.id}"><i class="ri-check-line"></i> Approve</button>` : ""}
+          ${o.status !== "rejected" ? `<button class="btn danger sm" data-reject="${o.id}"><i class="ri-close-line"></i> Reject</button>` : ""}
+          <button class="btn ghost sm" data-del="${o.id}"><i class="ri-delete-bin-line"></i></button>
+        </div>
+      </div>
+    </div>`).join("");
+  el.querySelectorAll("[data-approve]").forEach(b => b.onclick = () => approveOrder(b.dataset.approve));
+  el.querySelectorAll("[data-reject]").forEach(b => b.onclick = () => rejectOrder(b.dataset.reject));
+  el.querySelectorAll("[data-del]").forEach(b => b.onclick = () => delOrder(b.dataset.del));
+  el.querySelectorAll("[data-zoom]").forEach(img => img.onclick = () => zoomImg(img.dataset.zoom, "order"));
+}
+async function approveOrder(id) {
+  await fdb.patch(`orders/${id}`, { status:"approved", adminNote:"Payment verified ✅", decidedAt: Date.now() });
+  toast("Approved ✅", "ok");
+  loadOrders();
+}
+async function rejectOrder(id) {
+  const note = prompt("Reason:", "Screenshot unreadable"); if (note === null) return;
+  await fdb.patch(`orders/${id}`, { status:"rejected", adminNote: note || "Rejected", decidedAt: Date.now() });
+  toast("Rejected.", "ok"); loadOrders();
+}
+async function delOrder(id) {
+  if (!confirm("Delete this order?")) return;
+  await fdb.del(`orders/${id}`); toast("Deleted.", "ok"); loadOrders();
+}
+document.getElementById("refreshOrders").onclick = loadOrders;
+document.getElementById("orderFilter").addEventListener("input", renderOrders);
+
+// ============ CHAT LOGS ============
+let chatCache = [];
+async function loadChatLogs() {
+  const remote = await fdb.get("chatlogs");
+  chatCache = remote ? Object.entries(remote).map(([id, c]) => ({ id, ...c })) : [];
+  renderChatLogs();
+}
+function renderChatLogs() {
+  const q = (document.getElementById("chatFilter").value || "").toLowerCase();
+  const list = q ? chatCache.filter(c => (c.user || "").toLowerCase().includes(q) || (c.userMsg || "").toLowerCase().includes(q)) : chatCache;
+  list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const el = document.getElementById("chatLogsList");
+  if (!list.length) { el.innerHTML = `<div class="empty">No chat logs yet.</div>`; return; }
+  el.innerHTML = list.slice(0, 200).map(c => `
+    <div class="log-item">
+      <div class="head">
+        <span class="badge online">${esc(c.user)}</span>
+        <span class="badge pending">${esc(c.model || "?")}</span>
+        ${c.vision ? '<span class="badge">VISION</span>' : ''}
+        <span class="t">${fmtDate(c.ts)}</span>
+        <span class="t">${c.ms ? c.ms + "ms" : ""}</span>
+      </div>
+      <div style="font-size:12px;line-height:1.55;margin-bottom:6px;"><span class="role" style="color:#2563eb">USER</span> <div style="white-space:pre-wrap;word-break:break-word">${esc(c.userMsg)}</div></div>
+      <div style="font-size:12px;line-height:1.55;"><span class="role" style="color:#16a34a">AI</span> <div style="white-space:pre-wrap;word-break:break-word">${esc(c.aiMsg)}</div></div>
+    </div>`).join("");
+}
+document.getElementById("refreshChatLogs").onclick = loadChatLogs;
+document.getElementById("chatFilter").addEventListener("input", renderChatLogs);
+document.getElementById("clearChatLogs").onclick = async () => {
+  if (!confirm("Clear all chat logs?")) return;
+  await fdb.del("chatlogs"); toast("Chat logs cleared.", "ok"); loadChatLogs();
+};
+
+// ============ USERS ============
+let userCache = [];
+async function loadUsers() {
+  const remote = await fdb.get("users");
+  userCache = remote ? Object.entries(remote).map(([id, u]) => ({ id, ...u })) : [];
+  renderUsers();
+}
+function renderUsers() {
+  const q = (document.getElementById("userFilter").value || "").toLowerCase();
+  const list = q ? userCache.filter(u => (u.name || "").toLowerCase().includes(q)) : userCache;
+  list.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+  const el = document.getElementById("usersList");
+  if (!list.length) { el.innerHTML = `<div class="empty">No users yet.</div>`; return; }
+  const now = Date.now();
+  el.innerHTML = list.map(u => {
+    const online = (now - (u.lastSeen || 0)) < 60000;
+    return `
+    <div class="item">
+      <div class="meta">
+        <h3>${esc(u.name)} <span class="badge ${online ? 'online' : ''}">${online ? 'online' : 'offline'}</span></h3>
+        <p>Device: <b>${esc(u.device || "?")}</b> · Tier: <b>${esc(u.tier || "free")}</b></p>
+        <p>Last seen: ${fmtDate(u.lastSeen)} (${timeAgo(u.lastSeen)})</p>
+        <p><code>${esc((u.ua || "").slice(0, 120))}</code></p>
+        <div class="actions">
+          <button class="btn danger sm" data-banname="${esc(u.name)}"><i class="ri-forbid-2-line"></i> Ban</button>
+          <button class="btn ghost sm" data-clearlog="${esc(u.name)}"><i class="ri-delete-bin-line"></i> Delete user</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  el.querySelectorAll("[data-banname]").forEach(b => b.onclick = () => banUserPrompt(b.dataset.banName));
+  el.querySelectorAll("[data-clearlog]").forEach(b => b.onclick = async () => {
+    if (!confirm("Delete user record for " + b.dataset.clearlog + "?")) return;
+    await fdb.del(`users/${encodeURIComponent(b.dataset.clearlog)}`);
+    toast("User deleted.", "ok"); loadUsers();
+  });
+}
+document.getElementById("refreshUsers").onclick = loadUsers;
+document.getElementById("userFilter").addEventListener("input", renderUsers);
+
+// ============ IMAGE LOGS ============
+let imgCache = [];
+async function loadImgLogs() {
+  const remote = await fdb.get("imagelogs");
+  imgCache = remote ? Object.entries(remote).map(([id, i]) => ({ id, ...i })) : [];
+  renderImgLogs();
+}
+function renderImgLogs() {
+  const q = (document.getElementById("imgFilter").value || "").toLowerCase();
+  const list = q ? imgCache.filter(i => (i.user || "").toLowerCase().includes(q) || (i.prompt || "").toLowerCase().includes(q)) : imgCache;
+  list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const el = document.getElementById("imgLogsList");
+  if (!list.length) { el.innerHTML = `<div class="empty">No image logs yet.</div>`; return; }
+  el.innerHTML = list.slice(0, 200).map(i => `
+    <div class="item">
+      <img class="thumb" src="${i.url || SPOOF_IMG}" onerror="this.src='${SPOOF_IMG}'" data-zoomimg="${i.id}" alt="">
+      <div class="meta">
+        <h3>${esc(i.user)} <span class="badge ${i.ok ? 'approved' : 'rejected'}">${i.ok ? 'OK' : 'FAILED'}</span></h3>
+        <p>Prompt: <b>${esc((i.prompt || "").slice(0, 200))}</b></p>
+        <p>${fmtDate(i.ts)} · ${i.ms ? i.ms + "ms" : ""}</p>
+      </div>
+    </div>`).join("");
+  el.querySelectorAll("[data-zoomimg]").forEach(img => img.onclick = () => zoomImg(img.dataset.zoomimg, "img"));
+}
+document.getElementById("refreshImgLogs").onclick = loadImgLogs;
+document.getElementById("imgFilter").addEventListener("input", renderImgLogs);
+document.getElementById("clearImgLogs").onclick = async () => {
+  if (!confirm("Clear all image logs?")) return;
+  await fdb.del("imagelogs"); toast("Image logs cleared.", "ok"); loadImgLogs();
+};
+
+// ============ BANS ============
+let banCache = [];
+async function loadBans() {
+  const remote = await fdb.get("bans");
+  banCache = remote ? Object.entries(remote).map(([name, b]) => ({ name, ...b })) : [];
+  renderBans();
+}
+function renderBans() {
+  const el = document.getElementById("bansList");
+  if (!banCache.length) { el.innerHTML = `<div class="empty">No banned users.</div>`; return; }
+  banCache.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  el.innerHTML = banCache.map(b => `
+    <div class="item">
+      <div class="meta">
+        <h3>${esc(b.name)} <span class="badge banned">BANNED</span></h3>
+        <p>Reason: <b>${esc(b.reason || "No reason provided")}</b></p>
+        <p>Banned at: ${fmtDate(b.ts)} (${timeAgo(b.ts)})</p>
+        <div class="actions">
+          <button class="btn ok sm" data-unban="${esc(b.name)}"><i class="ri-check-line"></i> Unban</button>
+        </div>
+      </div>
+    </div>`).join("");
+  el.querySelectorAll("[data-unban]").forEach(btn => btn.onclick = () => unbanUser(btn.dataset.unban));
+}
+document.getElementById("banBtn").onclick = () => {
+  const name = document.getElementById("banName").value.trim();
+  const reason = document.getElementById("banReason").value.trim();
+  if (!name) { toast("Enter a user name.", "err"); return; }
+  doBan(name, reason);
+};
+async function doBan(name, reason) {
+  await fdb.put(`bans/${encodeURIComponent(name)}`, { name, reason: reason || "No reason provided", ts: Date.now() });
+  toast(`Banned ${name}`, "err");
+  document.getElementById("banName").value = "";
+  document.getElementById("banReason").value = "";
+  loadBans();
+}
+function banUserPrompt(name) {
+  const reason = prompt(`Ban "${name}"? Reason:`, "Violated guidelines");
+  if (reason === null) return;
+  doBan(name, reason);
+}
+async function unbanUser(name) {
+  await fdb.del(`bans/${encodeURIComponent(name)}`);
+  toast(`Unbanned ${name}`, "ok");
+  loadBans();
+}
+
+// ============ AI MONITOR ============
+async function loadMonitor() {
+  const [users, chats, imgs, orders, bans] = await Promise.all([
+    fdb.get("users"), fdb.get("chatlogs"), fdb.get("imagelogs"), fdb.get("orders"), fdb.get("bans"),
+  ]);
+  const userList = users ? Object.values(users) : [];
+  const chatList = chats ? Object.values(chats) : [];
+  const imgList = imgs ? Object.values(imgs) : [];
+  const orderList = orders ? Object.values(orders) : [];
+  const banList = bans ? Object.values(bans) : [];
+  const now = Date.now();
+  const online = userList.filter(u => now - (u.lastSeen || 0) < 60000).length;
+
+  document.getElementById("monitorStats").innerHTML = `
+    <div class="stat ok"><div class="l">Online now</div><div class="v">${online}</div></div>
+    <div class="stat"><div class="l">Total users</div><div class="v">${userList.length}</div></div>
+    <div class="stat"><div class="l">Chat msgs</div><div class="v">${chatList.length}</div></div>
+    <div class="stat"><div class="l">Images</div><div class="v">${imgList.length}</div></div>
+    <div class="stat warn"><div class="l">Orders</div><div class="v">${orderList.length}</div></div>
+    <div class="stat bad"><div class="l">Bans</div><div class="v">${banList.length}</div></div>
+  `;
+
+  // Combined recent feed
+  const events = [];
+  chatList.forEach(c => events.push({ ts:c.ts, type:"chat", text:`💬 ${c.user}: ${(c.userMsg||"").slice(0,80)}` }));
+  imgList.forEach(i => events.push({ ts:i.ts, type:"img", text:`🖼️ ${i.user}: ${(i.prompt||"").slice(0,80)}` }));
+  orderList.forEach(o => events.push({ ts:o.submittedAt, type:"order", text:`🛒 ${o.user} → ${o.planLabel} (${o.status})` }));
+  banList.forEach(b => events.push({ ts:b.ts, type:"ban", text:`🚫 Banned ${b.name}: ${b.reason}` }));
+  events.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  document.getElementById("monitorFeed").innerHTML = events.slice(0, 50).map(e => `
+    <div class="log-item">
+      <div class="head"><span class="t">${fmtDate(e.ts)}</span><span class="t">${timeAgo(e.ts)}</span></div>
+      <div class="body">${esc(e.text)}</div>
+    </div>`).join("") || `<div class="empty">No activity yet.</div>`;
+}
+
+document.getElementById("askAiSummary").onclick = async () => {
+  const out = document.getElementById("aiSummaryOut");
+  out.textContent = "Thinking…";
+  const [users, chats, imgs, orders, bans] = await Promise.all([
+    fdb.get("users"), fdb.get("chatlogs"), fdb.get("imagelogs"), fdb.get("orders"), fdb.get("bans"),
+  ]);
+  const userList = users ? Object.values(users) : [];
+  const chatList = chats ? Object.values(chats) : [];
+  const imgList = imgs ? Object.values(imgs) : [];
+  const orderList = orders ? Object.values(orders) : [];
+  const banList = bans ? Object.values(bans) : [];
+
+  const prompt = `You are an admin AI. Summarize the recent activity for the admin in 3-5 bullet points. Be concise.
+
+Total users: ${userList.length}
+Online now: ${userList.filter(u => Date.now() - (u.lastSeen || 0) < 60000).length}
+Chat messages (recent): ${chatList.length}
+Images (recent): ${imgList.length}
+Orders (recent): ${orderList.length}, pending: ${orderList.filter(o => o.status === "pending").length}
+Bans (recent): ${banList.length}
+
+Sample of recent chats:
+${chatList.slice(-10).map(c => `- ${c.user}: ${(c.userMsg || "").slice(0, 60)}`).join("\n")}
+
+Sample of recent bans:
+${banList.slice(-5).map(b => `- ${b.name}: ${b.reason}`).join("\n")}`;
+
+  try {
+    const r = await fetch("https://text.pollinations.ai/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model:"openai-fast", messages:[{ role:"user", content: prompt }], stream:false, private:true })
+    });
+    const data = await r.json();
+    const text = data?.choices?.[0]?.message?.content || "(no response)";
+    out.textContent = text;
+  } catch (e) {
+    out.textContent = "Failed: " + e.message;
+  }
+};
+
+// ============ AI TASKS (admin assistant) ============
+const taskMessages = document.getElementById("taskMessages");
+function addTaskMsg(text, who) {
+  const d = document.createElement("div");
+  d.className = "m " + who;
+  d.innerHTML = `${text}<div class="meta">${who === "user" ? "You" : "Admin AI"} · ${new Date().toLocaleTimeString()}</div>`;
+  taskMessages.appendChild(d);
+  taskMessages.scrollTop = taskMessages.scrollHeight;
+}
+async function runAiCommand(cmd) {
+  const lower = cmd.toLowerCase().trim();
+  // ban user
+  let m = lower.match(/^ban\s+(.+?)(?:\s+(?:for|reason:?)\s+(.+))?$/i);
+  if (m) {
+    const name = m[1].trim(), reason = m[2] ? m[2].trim() : "Banned by admin AI";
+    await fdb.put(`bans/${encodeURIComponent(name)}`, { name, reason, ts: Date.now() });
+    return `✅ Banned **${esc(name)}** — reason: ${esc(reason)}`;
+  }
+  // unban user
+  m = lower.match(/^unban\s+(.+)$/i);
+  if (m) {
+    const name = m[1].trim();
+    await fdb.del(`bans/${encodeURIComponent(name)}`);
+    return `✅ Unbanned **${esc(name)}**`;
+  }
+  // broadcast
+  m = cmd.match(/^broadcast\s+(.+)$/i);
+  if (m) {
+    const msg = m[1].trim();
+    await fdb.put("broadcast", { message: msg, type:"info", ts: Date.now() });
+    return `📢 Broadcast sent: **${esc(msg)}**`;
+  }
+  // clear logs
+  if (/^clear\s+(chat\s+)?logs?$/i.test(lower)) {
+    await fdb.del("chatlogs"); return "🗑️ Chat logs cleared.";
+  }
+  if (/^clear\s+(image\s+)?logs?$/i.test(lower)) {
+    await fdb.del("imagelogs"); return "🗑️ Image logs cleared.";
+  }
+  // who is online
+  if (/^(who|list).*(online|users)/i.test(lower)) {
+    const users = await fdb.get("users");
+    const list = users ? Object.values(users) : [];
+    const online = list.filter(u => Date.now() - (u.lastSeen || 0) < 60000);
+    if (!online.length) return "🌐 Nobody is online right now.";
+    return `🌐 **${online.length} online:**\n${online.map(u => `• ${esc(u.name)} (${u.device || "?"})`).join("\n")}`;
+  }
+  // pending orders
+  if (/pending\s+orders?/i.test(lower)) {
+    const orders = await fdb.get("orders");
+    const pending = orders ? Object.values(orders).filter(o => o.status === "pending") : [];
+    if (!pending.length) return "📦 No pending orders.";
+    return `📦 **${pending.length} pending:**\n${pending.map(o => `• ${esc(o.user)} → ${esc(o.planLabel)} (R$ ${o.price})`).join("\n")}`;
+  }
+  // recent bans
+  if (/recent\s+bans?/i.test(lower)) {
+    const bans = await fdb.get("bans");
+    const list = bans ? Object.values(bans) : [];
+    if (!list.length) return "🚫 No active bans.";
+    return `🚫 **${list.length} bans:**\n${list.map(b => `• ${esc(b.name)}: ${esc(b.reason)}`).join("\n")}`;
+  }
+  // stats
+  if (/^(stats|status)/i.test(lower)) {
+    const [users, chats, imgs, orders, bans] = await Promise.all([
+      fdb.get("users"), fdb.get("chatlogs"), fdb.get("imagelogs"), fdb.get("orders"), fdb.get("bans"),
+    ]);
+    const ul = users ? Object.values(users) : [];
+    const cl = chats ? Object.values(chats) : [];
+    const il = imgs ? Object.values(imgs) : [];
+    const ol = orders ? Object.values(orders) : [];
+    const bl = bans ? Object.values(bans) : [];
+    return `📊 **Stats:**\n• Users: ${ul.length} (${ul.filter(u => Date.now() - (u.lastSeen || 0) < 60000).length} online)\n• Chats: ${cl.length}\n• Images: ${il.length}\n• Orders: ${ol.length} (${ol.filter(o => o.status === "pending").length} pending)\n• Bans: ${bl.length}`;
+  }
+  // summary
+  if (/summary|summarize/i.test(lower)) {
+    return "Try the **AI Monitor** tab → Generate summary for a full activity summary.";
+  }
+  // freeform — ask AI
+  try {
+    const r = await fetch("https://text.pollinations.ai/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model:"openai-fast", messages:[
+        { role:"system", content:"You are an admin AI assistant for MiroxAI. Answer briefly. You can also suggest commands like ban <name>, unban <name>, broadcast <msg>, stats, who is online." },
+        { role:"user", content: cmd }
+      ], stream:false, private:true })
+    });
+    const data = await r.json();
+    return esc(data?.choices?.[0]?.message?.content || "(no response)");
+  } catch (e) {
+    return "❌ Failed: " + esc(e.message);
+  }
+}
+document.getElementById("taskForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const input = document.getElementById("taskInput");
+  const cmd = input.value.trim(); if (!cmd) return;
+  input.value = "";
+  addTaskMsg(esc(cmd), "user");
+  const reply = await runAiCommand(cmd);
+  addTaskMsg(reply, "ai");
+  // Refresh tabs
+  loadOverview(); loadBans();
+});
+document.querySelectorAll(".quick-cmd").forEach(b => b.addEventListener("click", () => {
+  document.getElementById("taskInput").value = b.dataset.cmd;
+  document.getElementById("taskForm").dispatchEvent(new Event("submit"));
+}));
+
+// ============ ZOOM ============
+function zoomImg(id, source) {
+  let url = SPOOF_IMG;
+  if (source === "order") {
+    const o = ordersCache.find(x => x.id === id); if (!o) return; url = o.proof || SPOOF_IMG;
+  } else if (source === "img") {
+    const i = imgCache.find(x => x.id === id); if (!i) return; url = i.url || SPOOF_IMG;
+  }
+  const w = window.open("", "_blank");
+  w.document.write(`<html><head><title>Image</title><style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}img{max-width:100%;max-height:100vh}</style></head><body><img src="${url}"></body></html>`);
+  w.document.close();
+}
+
+// ============ HEALTH ============
+async function checkFirebase() {
+  const r = await fdb.get("");
+  const pill = document.getElementById("fbPill");
+  if (r === null) { pill.textContent = "offline"; pill.className = "pill off"; }
+  else { pill.textContent = "connected"; pill.className = "pill on"; }
+}
+
+// ============ AUTO REFRESH ============
+async function bootLoop() {
+  checkFirebase();
+  loadOverview();
+  setInterval(() => {
+    if (document.hidden) return;
+    checkFirebase();
+    refreshCurrentTab();
+  }, REFRESH_MS);
+}
+function start() { bootLoop(); }
+</script>
+</body>
+</html>
